@@ -1,0 +1,93 @@
+% Copyright (c) by Jonas Umlauft (TUM) under BSD License 
+% Last modified: Jonas Umlauft 2017-05 
+
+clc,clear, close all; rng default;
+addpath(genpath('gpml'));
+%% Set parameters
+dSOS = 2;     % Degree of the SOS 
+rho = 0.01;   % 'Safety margin' for stabiization, large values speeds up convergence
+Nte = 2e3;    % Number of points in test grid
+stopX = 0.3;  % Stopping condition for simulation: Proximity to origin
+stopN = 1e3;  % Stopping condition for simulation: number of steps
+mins = 1e-5;  % minimum steps size in simulation
+
+ds = 10;     % Downsampling of training data
+
+sto = false;  % Run deterministic(sto=false) or stochastic(sto = true) case
+%% Load Training Data
+demos=load('Data.mat');
+demos.X=demos.demos; 
+Xtr = []; Ytr = []; Ndemo = length(demos.X);
+for n = 1:Ndemo
+    Xn = demos.X{n}(:,1:ds:end);
+    Xtr = [Xtr Xn(:,1:end-1)]; 
+    Ytr = [Ytr Xn(:,2:end)];
+end
+E = size(Xtr,1);
+Xtr = [Xtr zeros(E,1)];Ytr =[Ytr  zeros(E,1)];
+dXtr = Ytr-Xtr;
+
+%% Learn GPSSM model
+disp('Training GP models...');
+[mGP, varGP] = learnGPs(Xtr,Ytr);
+
+disp('Done');
+%% Find Lyapunov functions
+disp('Finding Lyapunov functions...');
+[P_SOS, val_SOS] = learnSOS(Xtr,Ytr,dSOS);
+
+exMat = getExpoMatrix(E,dSOS);
+if sto
+    VLyap = @(x) muSOS(x,varGP(x),P_SOS,exMat);
+else
+    VLyap = @(x) SOS(x,P_SOS,exMat);
+end
+disp('Done');
+%% Evaluate Test Points
+disp('Evaluating Grid Points...');
+grid_min = min(Xtr,[],2);
+grid_max = max(Xtr,[],2);
+Nd=floor(nthroot(Nte,E));Nte = Nd^E;
+Xte = ndgridj(grid_min,grid_max,Nd*ones(E,1));
+
+% Evaluate Vector field with GP mean
+mGPte = mGP(Xte);
+
+
+VLyapte = zeros(Nte,1); m_stab = zeros(E,Nte);
+for nte=1:Nte
+    % Evaluate Lyapunov functions
+    VLyapte(nte) = VLyap(Xte(:,nte));
+    
+    % Evaluate stabilized system
+    m_stab(:,nte) = CLF(Xte(:,nte),mGPte(:,nte),VLyap,rho,mins);
+end
+
+disp('Done');
+%% Simulate Trajectories and Compare to training data
+disp('Simulate Trajectories...');
+x0s = cell2mat(cellfun(@(v) v(:,1), demos.X,'UniformOutput', false));
+
+if sto
+    Xsim = SimStableTraj(mGP,@(x0,x1)CLF(x0,x1,VLyap,rho,mins),x0s,stopX,stopN,varGP);
+else
+    Xsim = SimStableTraj(mGP,@(x0,x1)CLF(x0,x1,VLyap,rho,mins),x0s,stopX,stopN);
+end
+disp('Done');
+%% Visualize
+Xte1 = reshape(Xte(1,:),Nd,Nd); Xte2 = reshape(Xte(2,:),Nd,Nd);
+z = (max(max(VLyapte)))*exp(-10:0.8:0); streamd = 1;
+
+figure; hold on;  axis equal;
+title('Original  GPSSM');
+quiver(Xtr(1,:),Xtr(2,:),dXtr(1,:),dXtr(2,:),'color','green', 'autoscale','off');
+streamslice(Xte1,Xte2,reshape(mGPte(1,:),Nd,Nd)-Xte1,...
+        reshape(mGPte(2,:),Nd,Nd)-Xte2,streamd);
+
+figure; hold on;  axis equal;
+title('Stabilized GPSSM')
+quiver(Xtr(1,:),Xtr(2,:),dXtr(1,:),dXtr(2,:),'color','green', 'autoscale','off');
+streamslice(Xte1,Xte2,reshape(m_stab(1,:),Nd,Nd)-Xte1,...
+        reshape(m_stab(2,:),Nd,Nd)-Xte2,streamd);
+contour(Xte1,Xte2,reshape(VLyapte,Nd,Nd),z,'k');
+for n=1:Ndemo, plot(Xsim{n}(1,:),Xsim{n}(2,:),'r'); end
