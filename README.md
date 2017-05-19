@@ -1,4 +1,4 @@
-The provided code accompanies the following publication:
+The provided Matlab code accompanies the following publication:
 
 @InProceedings{umlauft2017learning,
   author =       {Learning Stable Gaussian Process State Space Models},
