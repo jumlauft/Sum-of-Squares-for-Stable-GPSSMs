@@ -22,11 +22,11 @@ optSim.stopX = 1;    % Stopping condition simulation: proximity origin
 
 
 
-Nte = 1e2;    % Number of points in test grid
+Nte = 1e3;    % Number of points in test grid
 ds = 10;      % Downsampling of training data
 
 
-sto = true;  % Run deterministic(sto=false) or stochastic(sto = true) case
+sto = false;  % Run deterministic(sto=false) or stochastic(sto = true) case
 %% Load Training Data
 demos=load('Data.mat'); demos.X=demos.demos; 
 Xtr = []; Ytr = []; Ndemo = length(demos.X);
