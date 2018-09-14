@@ -1,7 +1,7 @@
 The provided Matlab code accompanies the following publication:
 
 @InProceedings{umlauft2017learning,
-  author =       {Learning Stable Gaussian Process State Space Models},
+  author =       {Jonas Umlauft. Armin Lederer, Sandra Hirche},
   title =        {Learning Stable Gaussian Process State Space Models},
   booktitle =    {American Control Conference (ACC)},
   year =         {2017},
@@ -13,7 +13,7 @@ Please acknowledge the authors in any academic publication that have made
 use of this code or parts of it by referencing to the paper.
 
 The most recent version is available at: 
-    https://jumlauft@gitlab.com/jumlauft/SOS4stableGPSSM.git
+    https://gitlab.lrz.de/ga68car/SOS4stableGPSSM.git
 
 Please send your feedbacks or questions to:
                       jonas.umlauft_at_tum.de
